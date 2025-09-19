@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>El Estudio del Artista: Fama y Respeto</title>
+<style>
+  /* ==========================
+     Estilos base y variables
+     ========================== */
+  :root{
+    --bg:#f6f7fb;             /* Fondo claro */
+    --panel:#ffffff;           /* Tarjetas */
+    --ink:#222;                /* Texto normal */
+    --ink-soft:#555;           /* Texto secundario */
+    --brand:#7a5cff;           /* Morado brillante */
+    --accent:#00b894;          /* Verde turquesa */
+    --warn:#ffb703;            /* Amarillo */
+    --danger:#ff3b3b;          /* Rojo */
+    --ok:#00c853;              /* Verde éxito */
+    --shadow:0 8px 24px rgba(0,0,0,.12);
+    --radius:18px;
+    --radius-lg:28px;
+    --size-touch:72px; /* ≥ 64px */
+  }
+
+  /* Alto contraste: enfatiza bordes y colores */
+  .high-contrast{
+    --bg:#ffffff;
+    --panel:#ffffff;
+    --ink:#000;
+    --ink-soft:#111;
+    --brand:#0000ff;
+    --accent:#008000;
+    --warn:#ffa500;
+    --danger:#d00000;
+    --ok:#007f00;
+    filter: contrast(1.05) saturate(1.1);
+  }
+
+  /* Modo Daltonismo: usa patrones + subrayados */
+  .cb-mode .with-pattern{
+    background-image: repeating-linear-gradient(45deg, rgba(0,0,0,.08) 0 8px, transparent 8px 16px);
+  }
+  .cb-mode .color-chip{ outline: 3px solid #111; }
+
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family: "Nunito", system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    line-height:1.35;
+    overflow:hidden; /* app de pantalla completa */
+  }
+  .app{
+    position:relative; width:100%; height:100%;
+    display:flex; flex-direction:column; align-items:stretch; justify-content:stretch;
+  }
+  header.appbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 16px; background:linear-gradient(90deg, var(--brand), #9e7bff);
+    color:#fff; box-shadow:var(--shadow);
+  }
+  .title{ font-weight:800; letter-spacing:.3px; }
+  .title span{ opacity:.92; }
+  .toggles{
+    display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+  }
+  .toggle{
+    background:rgba(255,255,255,.18); color:#fff; border:2px solid rgba(255,255,255,.35);
+    border-radius:999px; padding:6px 10px; min-width: var(--size-touch);
+    display:flex; gap:8px; align-items:center; justify-content:center;
+    cursor:pointer; user-select:none; transition:.2s transform, .2s background;
+  }
+  .toggle[aria-pressed="true"]{ background:rgba(0,0,0,.22); }
+  .toggle:focus{ outline:3px solid #fff; outline-offset:2px; }
+  .toggle .ico{ font-size:22px; }
+  .toggle .lbl{ font-size:14px; font-weight:700; }
+
+  /* Contenedores de pantallas */
+  .screen{ position:absolute; inset:0; display:none; padding:18px; }
+  .screen.active{ display:block; }
+
+  /* Tarjeta central genérica */
+  .card{
+    background:var(--panel); border-radius:var(--radius-lg); box-shadow:var(--shadow);
+    padding:24px; max-width:1100px; margin:20px auto; position:relative;
+  }
+  .center{ display:flex; align-items:center; justify-content:center; }
+
+  /* Pantalla: Inicio */
+  .start-wrap{ display:grid; grid-template-columns:1.2fr .8fr; gap:24px; align-items:center; }
+  .start-art{ aspect-ratio: 16/12; border-radius:var(--radius-lg); background: radial-gradient(120% 120% at 30% 20%, #fff 0%, #eaf1ff 40%, #f8efff 70%, #e8fff7 100%); box-shadow:var(--shadow); position:relative; overflow:hidden; }
+  .start-art .easel{
+    position:absolute; inset:12% 8% 12% 8%; border-radius:16px; background:#fff; border:4px solid #333; display:grid; place-items:center;
+  }
+  .start-art .spark{ position:absolute; width:14px; height:14px; border-radius:50%; background:#ffd166; animation: float 5s infinite ease-in-out; opacity:.8; }
+  @keyframes float{ 50%{ transform:translateY(-12px) scale(1.05);} }
+
+  .start-cta{ display:flex; flex-direction:column; gap:12px; }
+  h1.big{ font-size: clamp(28px, 4vmin + 10px, 48px); margin:0 0 8px; }
+  .subtitle{ color:var(--ink-soft); margin-bottom:14px; }
+
+  .btn{
+    background:var(--brand); color:#fff; border:none; padding:16px 22px; border-radius:18px;
+    font-weight:800; letter-spacing:.3px; cursor:pointer; box-shadow:var(--shadow);
+    min-height: var(--size-touch); min-width: 200px; font-size:18px;
+    transition:.2s transform, .2s box-shadow, .2s filter; position:relative;
+  }
+  .btn:hover{ transform: translateY(-2px); }
+  .btn:active{ transform: translateY(0); filter:brightness(.95); }
+  .btn.alt{ background:var(--accent); color:#073b3a; }
+
+  /* Modal genérico */
+  .modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background: rgba(0,0,0,.45); z-index:50; padding:16px; }
+  .modal.show{ display:flex; }
+  .sheet{ background:var(--panel); border-radius:20px; box-shadow:var(--shadow); max-width:900px; width:100%; padding:22px; }
+  .modal h3{ margin:0 0 8px; }
+  .modal .slides{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin:12px 0; }
+  .slide{
+    border:3px solid #222; border-radius:16px; padding:12px; min-height:200px; display:grid; grid-template-rows: 1fr auto; gap:10px; background:#fff; position:relative;
+  }
+  .slide .art{ display:grid; place-items:center; font-size:48px; }
+  .slide p{ margin:0; font-weight:700; text-align:center; }
+
+  /* Briefing */
+  .brief-grid{ display:grid; grid-template-columns: 280px 1fr; gap:20px; align-items:stretch; }
+  .teacher{
+    background:linear-gradient(#ffe6f0, #fff); border-radius:24px; padding:16px; box-shadow:var(--shadow);
+    display:grid; place-items:center; position:relative; min-height:380px;
+  }
+  .teacher .avatar{
+    width:170px; height:170px; border-radius:50%; background: radial-gradient(circle at 30% 30%, #ffe 0, #ffd6f3 25%, #ffc2e0 60%, #f8a7d1 100%);
+    border:6px solid #333; position:relative; overflow:hidden;
+  }
+  .teacher .hat{ position:absolute; top:-6px; left:50%; transform:translateX(-50%); width:120px; height:60px; background:#333; border-radius:60px 60px 8px 8px; }
+  .teacher .hat::after{ content:""; position:absolute; bottom:-10px; left:50%; transform:translateX(-50%); width:160px; height:16px; background:#333; border-radius:12px; }
+  .brief-card{ padding:16px; background:var(--panel); border-radius:24px; box-shadow:var(--shadow); }
+  .mini-demo{ display:grid; grid-template-columns:1fr 40px 1fr 40px 1fr; gap:8px; align-items:center; margin:6px 0 14px; }
+  .tile{
+    background:#fff; border:3px solid #222; border-radius:16px; padding:10px; display:grid; place-items:center; min-height:120px; position:relative;
+  }
+  .tile .stamp{ position:absolute; bottom:6px; right:6px; font-weight:900; font-size:12px; padding:4px 6px; border:2px dashed; border-radius:6px; }
+  .stamp.ok{ color:#0a7; border-color:#0a7; }
+  .stamp.bad{ color:#c00; border-color:#c00; transform:rotate(-8deg); }
+  .chip{ display:inline-flex; align-items:center; gap:6px; background:#f1f5ff; border:2px solid #333; padding:6px 10px; border-radius:999px; font-weight:800; }
+
+  /* Estudio (juego principal) */
+  .studio{
+    display:grid; grid-template-columns: 280px 1fr 260px; grid-template-rows: auto 1fr auto; gap:14px; height: calc(100% - 84px);
+  }
+  .panel{ background:var(--panel); border-radius:var(--radius); box-shadow:var(--shadow); padding:12px; }
+  .palette{
+    display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; align-content:start; padding-bottom:12px;
+  }
+  .idea{
+    background:#fff; border:3px solid #222; border-radius:16px; min-height: var(--size-touch); display:grid; place-items:center; font-size:34px; cursor:grab; user-select:none; position:relative; transition:.15s transform;
+  }
+  .idea:active{ transform:scale(.97); }
+  .idea .tag{ position:absolute; bottom:4px; left:6px; font-size:12px; font-weight:800; color:#333; background:#fffa; padding:2px 6px; border-radius:8px; }
+
+  .canvas{
+    background:linear-gradient(#fff, #f7fbff); border:4px solid #222; border-radius:24px; position:relative; overflow:hidden; min-height: 360px;
+    display:grid; place-items:center;
+  }
+  .drop-hint{ color:#999; font-weight:800; }
+  .composition{ position:absolute; inset:0; }
+  .comp-emoji{ position:absolute; font-size: 56px; filter: drop-shadow(0 2px 0 rgba(0,0,0,.15)); }
+  .style-layer{ position:absolute; inset:0; pointer-events:none; }
+
+  .styles{ display:grid; gap:10px; }
+  .style-btn{
+    background:#fff; border:3px solid #222; border-radius:16px; min-height: var(--size-touch); display:grid; grid-template-columns: 48px 1fr; align-items:center; padding:8px;
+    cursor:pointer; font-weight:800; text-align:left; transition:.15s transform;
+  }
+  .style-btn .ico{ font-size:28px; display:grid; place-items:center; }
+  .style-btn.active{ outline:4px solid var(--brand); }
+  .style-btn.warn{ border-color:var(--warn); }
+
+  .toolbar{ display:flex; align-items:center; gap:10px; }
+  .toolbar .btn{ min-width:160px; }
+
+  /* HUD */
+  .hud{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
+  .meter{ background:#fff; border:3px solid #222; border-radius:16px; padding:8px 10px; display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; }
+  .meter .val{ font-weight:900; }
+  .bar{ height:12px; border:2px solid #222; border-radius:999px; overflow:hidden; background:#eee; position:relative; }
+  .bar .fill{ position:absolute; inset:0; transform-origin:left center; background:linear-gradient(90deg, var(--accent), #6ee7b7); }
+  .bar.risk .fill{ background:linear-gradient(90deg, #ffd166, #ff3b3b); }
+
+  .gallery{ display:flex; gap:8px; align-items:center; overflow-x:auto; padding-bottom:6px; }
+  .thumb{ min-width:120px; height:80px; border:3px solid #222; border-radius:12px; background:#fff; position:relative; }
+
+  /* Detective modal */
+  .detective-stamp{ position:absolute; inset:auto 16px 16px auto; font-weight:900; font-size:22px; padding:6px 10px; border:4px dashed var(--danger); color:var(--danger); background:#fff; border-radius:8px; transform:rotate(-8deg); box-shadow:var(--shadow); }
+  .detective-row{ display:grid; grid-template-columns:1fr 40px 1fr; gap:10px; align-items:center; }
+
+  /* Captions */
+  .captions{ position:fixed; left:0; right:0; bottom:0; padding:12px 18px; display:flex; justify-content:center; z-index:60; pointer-events:none; }
+  .bubble{ max-width:1000px; background:rgba(0,0,0,.82); color:#fff; padding:12px 16px; border-radius:16px; box-shadow:var(--shadow); font-weight:800; letter-spacing:.2px; }
+
+  /* Accesibilidad de foco */
+  :focus-visible{ outline:3px solid var(--brand); outline-offset:2px; }
+
+  /* Utilidades */
+  .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .space{ flex:1; }
+  .muted{ color:var(--ink-soft); }
+  .hidden{ display:none !important; }
+
+  @media (max-width: 1060px){
+    .start-wrap{ grid-template-columns:1fr; }
+    .brief-grid{ grid-template-columns:1fr; }
+    .studio{ grid-template-columns: 1fr; grid-template-rows: auto auto 1fr auto auto; height:auto; overflow:auto; }
+  }
+</style>
+</head>
+<body class="with-pattern">
+<div class="app" id="app" aria-live="polite">
+  <header class="appbar" role="banner">
+    <div class="title" aria-label="Título del juego">
+      <span>🎨</span> <strong>El Estudio del Artista:</strong> <span>Fama y Respeto</span>
+    </div>
+    <div class="toggles" role="toolbar" aria-label="Controles de accesibilidad y sonido">
+      <button class="toggle" id="tglMusic" aria-pressed="true" title="Música">
+        <span class="ico">🎵</span><span class="lbl">Música</span>
+      </button>
+      <button class="toggle" id="tglVoice" aria-pressed="true" title="Voz en off">
+        <span class="ico">🗣️</span><span class="lbl">Voz</span>
+      </button>
+      <button class="toggle" id="tglCaptions" aria-pressed="true" title="Subtítulos">
+        <span class="ico">💬</span><span class="lbl">Subtítulos</span>
+      </button>
+      <button class="toggle" id="tglContrast" aria-pressed="false" title="Alto contraste">
+        <span class="ico">⚫️⚪️</span><span class="lbl">Contraste</span>
+      </button>
+      <button class="toggle" id="tglCB" aria-pressed="false" title="Modo daltonismo">
+        <span class="ico">🔲</span><span class="lbl">Daltonismo</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- =====================
+       Pantalla: INICIO
+       ===================== -->
+  <main id="screenStart" class="screen active" role="main">
+    <div class="card start-wrap">
+      <div class="start-art with-pattern" aria-hidden="true">
+        <div class="easel">
+          <div style="font-size:66px;">
+            🐱➡️🐶<br>
+            <small style="font-size:16px;color:#666;font-weight:800;">Idea propia + IA = 💡</small>
+          </div>
+        </div>
+        <!-- chispitas decorativas -->
+        <div class="spark" style="left:10%; top:14%"></div>
+        <div class="spark" style="left:60%; top:18%; animation-delay: .7s"></div>
+        <div class="spark" style="left:80%; top:60%; animation-delay: 1.4s"></div>
+        <div class="spark" style="left:30%; top:70%; animation-delay: .3s"></div>
+      </div>
+      <div class="start-cta">
+        <h1 class="big">El Estudio del Artista <span class="muted">— Ciudadanía Digital</span></h1>
+        <p class="subtitle"><strong>Meta:</strong> Distinguir inspiración vs plagio, usar IA con responsabilidad y entender el impacto de pedir “como otro artista”.</p>
+        <div class="row">
+          <button class="btn" id="btnPlay" aria-label="Jugar">▶️ Jugar</button>
+          <button class="btn alt" id="btnHow" aria-label="Cómo se juega">❓ Cómo se juega</button>
+        </div>
+        <div class="muted" style="font-weight:800;">Teclado: 1=Paleta · 2=Estilos · 3=Publicar · R=Reintentar</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal: Cómo se juega -->
+  <div class="modal" id="modalHow" role="dialog" aria-modal="true" aria-label="Cómo se juega">
+    <div class="sheet">
+      <div class="row">
+        <h3>Cómo se juega</h3>
+        <div class="space"></div>
+        <button class="btn alt" id="closeHow">Cerrar</button>
+      </div>
+      <div class="slides">
+        <div class="slide" aria-label="Lámina 1">
+          <div class="art">🤖 🌳 🐱 ➕ ✨</div>
+          <p>Mezcla 2+ ideas y elige un estilo propio.</p>
+        </div>
+        <div class="slide" aria-label="Lámina 2">
+          <div class="art">🖌️➡️🖼️➡️🖥️</div>
+          <p>Usa el Pincel de IA, genera y publica.</p>
+        </div>
+        <div class="slide" aria-label="Lámina 3">
+          <div class="art">⚠️🙅‍♂️🎨</div>
+          <p>Evita imitar artistas famosos. ¡Crea tu mezcla!</p>
+        </div>
+      </div>
+      <div class="muted">Consejo: “Mi idea primero; la IA me ayuda”.</div>
+    </div>
+  </div>
+
+  <!-- =====================
+       Pantalla: BRIEFING
+       ===================== -->
+  <section id="screenBrief" class="screen" aria-label="Briefing de la Maestra de Arte">
+    <div class="card brief-grid">
+      <div class="teacher">
+        <div class="avatar" aria-hidden="true"></div>
+        <div class="hat" aria-hidden="true"></div>
+      </div>
+      <div class="brief-card">
+        <div class="row" style="margin-bottom:8px;">
+          <span class="chip">Maestra de Arte 🎨</span>
+          <div class="space"></div>
+        </div>
+        <div id="briefText" style="font-size:18px; font-weight:800;">
+          <!-- texto dinámico -->
+        </div>
+        <div class="mini-demo">
+          <div class="tile" title="Obra famosa: Gato azul">
+            <div style="font-size:60px">🐱🔵</div>
+          </div>
+          <div class="row center" aria-hidden="true">➡️</div>
+          <div class="tile" title="Idea nueva: Perro azul">
+            <div style="font-size:60px">🐶🔵</div>
+            <div class="stamp ok">INSPIRACIÓN ✅</div>
+          </div>
+          <div class="row center" aria-hidden="true">/</div>
+          <div class="tile" title="Copia exacta: Gato azul">
+            <div style="font-size:60px">🐱🔵</div>
+            <div class="stamp bad">PLAGIO ❌</div>
+          </div>
+        </div>
+        <div class="row" style="gap:14px;">
+          <div class="chip" title="Fans">
+            ❤️ Fans <span id="demoFans">0</span>
+          </div>
+          <div class="chip" title="Respeto">
+            ⭐ Respeto <span id="demoResp">60</span>
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px;">
+          <div class="space"></div>
+          <button class="btn" id="btnUnderstood">¡Entendido!</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================
+       Pantalla: ESTUDIO (Juego)
+       ===================== -->
+  <section id="screenStudio" class="screen" aria-label="Estudio Digital">
+    <div class="studio">
+      <!-- Paleta de Ideas -->
+      <div class="panel" aria-label="Paleta de Ideas">
+        <div class="row" style="margin-bottom:8px;">
+          <strong>Paleta de Ideas</strong>
+          <span class="muted" title="Mezcla ideas">(Mezcla ideas)</span>
+        </div>
+        <div class="palette" id="palette"></div>
+      </div>
+
+      <!-- Lienzo -->
+      <div class="panel with-pattern" aria-label="Lienzo central">
+        <div class="canvas" id="canvas" tabindex="0" aria-dropeffect="copy" aria-label="Lienzo, suelta aquí tus ideas">
+          <div class="drop-hint" id="dropHint">Arrastra 2+ ideas aquí</div>
+          <svg class="composition" id="composition" viewBox="0 0 800 480" role="img" aria-label="Composición generada"></svg>
+          <div class="style-layer" id="styleLayer"></div>
+        </div>
+        <div class="row toolbar" style="margin-top:12px;">
+          <button class="btn alt" id="btnGenerate" title="Pincel de IA">🖌️ Pincel de IA</button>
+          <button class="btn" id="btnPublish" title="Publicar en la galería">🖥️ Publicar</button>
+          <button class="btn" id="btnResetCanvas" title="Limpiar lienzo">♻️ Limpiar</button>
+          <div class="space"></div>
+          <span class="muted">Objetivo: publica 3 obras con Respeto alto</span>
+        </div>
+      </div>
+
+      <!-- Estilos -->
+      <div class="panel" aria-label="Menú de Estilos">
+        <div class="row" style="margin-bottom:8px;">
+          <strong>Estilos</strong>
+          <span class="muted" title="Estilo propio">(Estilo propio)</span>
+        </div>
+        <div class="styles" id="styleMenu"></div>
+      </div>
+
+      <!-- HUD -->
+      <div class="panel" style="grid-column: 1 / -1;">
+        <div class="hud" role="group" aria-label="Indicadores de Fans, Respeto y Riesgo">
+          <div class="meter" title="Fans">
+            <div>❤️</div>
+            <div class="bar"><div id="barFans" class="fill" style="transform: scaleX(0);"></div></div>
+            <div class="val" id="valFans">0</div>
+          </div>
+          <div class="meter" title="Respeto">
+            <div>⭐</div>
+            <div class="bar"><div id="barResp" class="fill" style="transform: scaleX(.6);"></div></div>
+            <div class="val" id="valResp">60</div>
+          </div>
+          <div class="meter" title="Riesgo de plagio">
+            <div>⚠️</div>
+            <div class="bar risk"><div id="barRisk" class="fill" style="transform: scaleX(.1);"></div></div>
+            <div class="val" id="valRisk">10</div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <strong>Galería</strong>
+        </div>
+        <div class="gallery" id="gallery" aria-label="Obras publicadas"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================
+       Modal: Detective de Arte
+       ===================== -->
+  <div class="modal" id="modalDetective" role="dialog" aria-modal="true" aria-label="Detective de Arte">
+    <div class="sheet">
+      <h3>🕵️ Detective de Arte</h3>
+      <p>Comparando obras... posible copia detectada.</p>
+      <div class="detective-row">
+        <div class="tile"><div style="font-size:50px;">🖼️⚠️</div></div>
+        <div class="row center">↔️</div>
+        <div class="tile"><div style="font-size:50px;">🖼️⚠️</div></div>
+      </div>
+      <div class="detective-stamp">PLAGIO DESCUBIERTO</div>
+      <div class="row" style="margin-top:12px;">
+        <div class="space"></div>
+        <button class="btn" id="btnCloseDetective">Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================
+       Modal: Resultado final
+       ===================== -->
+  <div class="modal" id="modalResult" role="dialog" aria-modal="true" aria-label="Resultado del día de galería">
+    <div class="sheet">
+      <h3 id="resultTitle">Resumen del Día</h3>
+      <p id="resultText"></p>
+      <div class="row">
+        <button class="btn" id="btnRetry">Reintentar</button>
+        <div class="space"></div>
+        <button class="btn alt" id="btnCloseResult">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subtítulos / narración breve -->
+  <div class="captions" id="captions"><div class="bubble" id="captionText">&nbsp;</div></div>
+</div>
+
+<script>
+/****************************************************
+ *  El Estudio del Artista: Fama y Respeto
+ *  Juego educativo para 3° de primaria.
+ *  Un solo archivo (HTML+CSS+JS), sin librerías externas.
+ *
+ *  🔧 Docentes pueden editar textos, reglas y efectos:
+ *    - Ideas/Estilos: arrays "ideas" y "estilos"
+ *    - Reglas: función evaluateWorkType() y adjustMeters()
+ *    - Voz: speak(text)
+ *    - Accesibilidad: toggles y clases CSS
+ ****************************************************/
+
+// ------------------ Datos (editables) ------------------
+const ideas = [
+  {id:"robot", icon:"🤖", label:"Robot"}, {id:"jardin", icon:"🌳", label:"Jardín"}, {id:"espacio", icon:"🚀", label:"Espacio"},
+  {id:"gato", icon:"🐱", label:"Gato"}, {id:"mascara", icon:"🎭", label:"Máscara"}, {id:"ciudad", icon:"🏙️", label:"Ciudad"},
+  {id:"oceano", icon:"🐠", label:"Océano"}
+];
+
+const estilos = [
+  {id:"calidos", label:"Colores cálidos", riesgo:0, tags:["color_warm"], ico:"🎨"},
+  {id:"geometricos", label:"Trazos geométricos", riesgo:0, tags:["shape_geo"], ico:"✏️"},
+  {id:"nocturno", label:"Nocturno estrellado (genérico)", riesgo:5, tags:["night_stars"], ico:"🌌"},
+  {id:"collage", label:"Collage abstracto", riesgo:0, tags:["abstract"], ico:"🧩"},
+  {id:"imitar_famoso", label:"⚠️ Imitar Artista Famoso", riesgo:70, tags:["style_specific"], ico:"⚠️", peligro:true}
+];
+
+const estado = {
+  fans: 0, respeto: 60, riesgo: 10, // 0–100
+  obrasPublicadas: 0, objetivoObras: 3,
+  voiceOn:true, captionsOn:true, musicOn:true, highContrast:false, cbMode:false,
+};
+
+// Trabajo en curso
+const currentWork = { ideas: [], style: null, svgMarkup: "", type: null };
+
+// ------------------ Utilidades de audio (sencillas) ------------------
+let audioCtx; let musicGain; let sfxGain; let musicOscs = [];
+function ensureAudio(){
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    musicGain = audioCtx.createGain(); musicGain.gain.value = 0.06; // volumen base suave
+    sfxGain = audioCtx.createGain(); sfxGain.gain.value = 0.3;
+    musicGain.connect(audioCtx.destination); sfxGain.connect(audioCtx.destination);
+    startMusic();
+  }
+}
+function startMusic(){
+  stopMusic();
+  // Música amable: dos osciladores + LFO de volumen
+  const osc1 = audioCtx.createOscillator(); osc1.type = 'sine'; osc1.frequency.value = 220; // A3
+  const osc2 = audioCtx.createOscillator(); osc2.type = 'triangle'; osc2.frequency.value = 277; // C#4
+  const lfo = audioCtx.createOscillator(); lfo.type='sine'; lfo.frequency.value = 0.2; // latido
+  const lfoGain = audioCtx.createGain(); lfoGain.gain.value = 0.03;
+  lfo.connect(lfoGain).connect(musicGain.gain);
+  osc1.connect(musicGain); osc2.connect(musicGain);
+  osc1.start(); osc2.start(); lfo.start();
+  musicOscs = [osc1, osc2, lfo];
+  updateMusicByRespect();
+}
+function stopMusic(){
+  if(musicOscs.length){
+    musicOscs.forEach(o=>{ try{o.stop(); o.disconnect();}catch{}});
+    musicOscs=[];
+  }
+}
+function updateMusicByRespect(){
+  if(!musicGain) return;
+  // Sube volumen con Respeto (0.06 a 0.16)
+  const base = 0.06; const max = 0.16; const t = Math.max(0, Math.min(1, estado.respeto/120));
+  const v = base + (max-base)*t;
+  musicGain.gain.setTargetAtTime(estado.musicOn ? v : 0, audioCtx.currentTime, .2);
+}
+function sfx(type){
+  if(!audioCtx) return;
+  if(!estado.musicOn) return; // usa mismo flag para simplicidad
+  const now = audioCtx.currentTime;
+  if(type==='click'){
+    const o = audioCtx.createOscillator(); const g=audioCtx.createGain();
+    o.frequency.setValueAtTime(800, now); o.frequency.linearRampToValueAtTime(200, now+0.06);
+    g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.001, now+0.08);
+    o.connect(g).connect(sfxGain); o.start(); o.stop(now+0.1);
+  } else if(type==='aplausos'){
+    // Ruido breve con compuertas para simular aplausos
+    const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate*0.5, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<data.length;i++){ data[i] = (Math.random()*2-1) * Math.pow(1-i/data.length, 2); }
+    const src = audioCtx.createBufferSource(); src.buffer = buffer;
+    const g = audioCtx.createGain(); g.gain.value = 0.5;
+    src.connect(g).connect(sfxGain); src.start();
+  } else if(type==='alarma'){
+    const o = audioCtx.createOscillator(); o.type='square'; const g=audioCtx.createGain();
+    o.frequency.setValueAtTime(880, now); o.frequency.setValueAtTime(660, now+0.2);
+    g.gain.setValueAtTime(0.4, now); g.gain.linearRampToValueAtTime(0.0, now+0.5);
+    o.connect(g).connect(sfxGain); o.start(); o.stop(now+0.5);
+  } else if(type==='fanfarria'){
+    const o1=audioCtx.createOscillator(), o2=audioCtx.createOscillator(); const g=audioCtx.createGain();
+    o1.type='triangle'; o2.type='triangle'; o1.frequency.setValueAtTime(523, now); o2.frequency.setValueAtTime(659, now);
+    g.gain.setValueAtTime(0.0, now); g.gain.linearRampToValueAtTime(0.35, now+0.05); g.gain.linearRampToValueAtTime(0.0, now+0.6);
+    o1.connect(g).connect(sfxGain); o2.connect(g).connect(sfxGain);
+    o1.start(); o2.start(); o1.stop(now+0.6); o2.stop(now+0.6);
+  }
+}
+
+// ------------------ Voz y subtítulos ------------------
+function speak(text){
+  setCaption(text);
+  if(!estado.voiceOn) return;
+  try{
+    const u = new SpeechSynthesisUtterance(text);
+    const voices = window.speechSynthesis.getVoices();
+    const esmx = voices.find(v=>/es-?MX/i.test(v.lang)) || voices.find(v=>/es/i.test(v.lang));
+    if(esmx) u.voice = esmx; u.lang = esmx? esmx.lang : 'es-MX';
+    u.rate = 0.95; u.pitch = 1;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  }catch(e){ /* silencioso */ }
+}
+function setCaption(text){
+  const el = document.getElementById('captionText');
+  if(estado.captionsOn){ el.textContent = text; el.parentElement.style.opacity=1; }
+  else { el.textContent = ''; el.parentElement.style.opacity=0; }
+}
+
+// ------------------ Renderizado UI ------------------
+function renderUI(){
+  // HUD
+  document.getElementById('valFans').textContent = Math.round(estado.fans);
+  document.getElementById('valResp').textContent = Math.round(estado.respeto);
+  document.getElementById('valRisk').textContent = Math.round(estado.riesgo);
+  document.getElementById('barFans').style.transform = `scaleX(${Math.min(1, estado.fans/200)})`;
+  document.getElementById('barResp').style.transform = `scaleX(${Math.min(1, estado.respeto/120)})`;
+  document.getElementById('barRisk').style.transform = `scaleX(${Math.min(1, estado.riesgo/100)})`;
+
+  // Música según respeto
+  if(audioCtx) updateMusicByRespect();
+
+  // Construir paleta
+  const pal = document.getElementById('palette'); pal.innerHTML='';
+  ideas.forEach(it=>{
+    const b = document.createElement('button'); b.className='idea'; b.draggable=true; b.title='Mezcla ideas';
+    b.setAttribute('aria-label', `${it.label}`); b.dataset.id = it.id; b.innerHTML = `<div style="font-size:38px;">${it.icon}</div><div class="tag">${it.label}</div>`;
+    // Drag & Drop
+    b.addEventListener('dragstart', ev=>{ ev.dataTransfer.setData('text/plain', it.id); });
+    // Click = añadir
+    b.addEventListener('click', ()=>{ addIdea(it.id); sfx('click'); });
+    pal.appendChild(b);
+  });
+
+  // Estilos
+  const sm = document.getElementById('styleMenu'); sm.innerHTML='';
+  estilos.forEach(st=>{
+    const b = document.createElement('button'); b.className='style-btn' + (st.peligro?' warn':'');
+    b.setAttribute('aria-label', st.label + (st.peligro?' (riesgo)':''));
+    b.dataset.id = st.id; b.innerHTML = `<div class="ico">${st.ico}</div><div>${st.label}</div>`;
+    b.addEventListener('click', ()=>{ chooseStyle(st.id); sfx('click'); });
+    if(currentWork.style===st.id) b.classList.add('active');
+    sm.appendChild(b);
+  });
+
+  // Lienzo hint
+  document.getElementById('dropHint').style.display = currentWork.ideas.length? 'none':'block';
+}
+
+// ------------------ Lógica de juego ------------------
+function addIdea(id){
+  if(!ideas.find(i=>i.id===id)) return;
+  currentWork.ideas.push(id);
+  drawComposition();
+  renderUI();
+}
+
+function removeIdeaAt(index){
+  currentWork.ideas.splice(index,1);
+  drawComposition(); renderUI();
+}
+
+function chooseStyle(id){ currentWork.style = id; renderUI(); drawStyleLayer(); }
+
+function generateWork(){
+  // Simula la generación: crea un SVG con emojis posicionados
+  drawComposition(true);
+  const type = evaluateWorkType();
+  currentWork.type = type; // 'original' | 'inspirada' | 'riesgo'
+  const msg = type==='original' ? '¡Obra original! Tu comunidad ama tu originalidad.'
+           : type==='inspirada' ? 'Obra inspirada responsable: tu composición es nueva.'
+           : 'Riesgo alto: parece imitación. Evita la copia.';
+  speak(msg);
+}
+
+function publishWork(){
+  if(!currentWork.ideas.length || !currentWork.style){ speak('Primero mezcla ideas y elige un estilo.'); return; }
+  // Aplicar reglas al publicar
+  const type = currentWork.type || evaluateWorkType();
+  if(type==='original'){
+    adjustMeters({fans:+50, respeto:+100, riesgo:-20});
+    simulateCommunityFeedback('original');
+  } else if(type==='inspirada'){
+    adjustMeters({fans:+35, respeto:+60, riesgo:-10});
+    simulateCommunityFeedback('inspirada');
+  } else { // riesgo/plagio
+    adjustMeters({fans:+30, respeto:+0, riesgo:+30});
+    simulateCommunityFeedback('riesgo-primario');
+    setTimeout(()=> detectPlagiarismIfNeeded(), 1000);
+  }
+
+  // Guardar en galería
+  addToGallery();
+  estado.obrasPublicadas++;
+
+  // Checar victoria/derrota
+  checkEndConditions();
+  // Reset del canvas para siguiente obra
+  resetCanvas(false);
+}
+
+function simulateCommunityFeedback(kind){
+  if(kind==='original'){
+    sfx('aplausos'); speak('¡Tu comunidad ama tu originalidad!');
+  } else if(kind==='inspirada'){
+    sfx('aplausos'); speak('Bien: inspiración responsable con composición nueva.');
+  } else if(kind==='riesgo-primario'){
+    setCaption('Aparente éxito... pero puede haber riesgo.');
+  }
+}
+
+function detectPlagiarismIfNeeded(){
+  const st = estilos.find(s=>s.id===currentWork.style);
+  if(st && st.peligro){
+    // Mostrar modal detective
+    showModal('modalDetective', true);
+    sfx('alarma'); speak('Te han descubierto. La copia daña tu respeto.');
+    // Penalización
+    adjustMeters({fans:-100, respeto:'zero', riesgo:100});
+  }
+}
+
+function adjustMeters(delta){
+  if(typeof delta.fans === 'number') estado.fans = Math.max(0, estado.fans + delta.fans);
+  if(delta.respeto === 'zero') estado.respeto = 0; else if(typeof delta.respeto === 'number') estado.respeto = Math.max(0, Math.min(120, estado.respeto + delta.respeto));
+  if(typeof delta.riesgo === 'number') estado.riesgo = Math.max(0, Math.min(100, estado.riesgo + delta.riesgo));
+  renderUI();
+}
+
+function evaluateWorkType(){
+  // Lógica simple y editable:
+  const ideaSet = new Set(currentWork.ideas);
+  const style = estilos.find(s=>s.id===currentWork.style);
+  if(style && style.peligro) return 'riesgo';
+  if(ideaSet.size >= 2 && style) return 'original';
+  if(ideaSet.size === 1 && style && !style.peligro) return 'inspirada';
+  return 'incompleta';
+}
+
+function checkEndConditions(){
+  // Victoria: 3 publicaciones, Respeto ≥ 90, Fans ≥ 150
+  if(estado.obrasPublicadas >= estado.objetivoObras){
+    const win = (estado.respeto>=90 && estado.fans>=150);
+    const title = win? '🎉 ¡Galería celebrada por originalidad!' : 'Día de galería terminado';
+    const text = `Obras: ${estado.obrasPublicadas} · Fans: ${Math.round(estado.fans)} · Respeto: ${Math.round(estado.respeto)}%`;
+    document.getElementById('resultTitle').textContent = title;
+    document.getElementById('resultText').textContent = win? `${text}. ¡Respeto alto logrado!` : `${text}. Consejo: mezcla 2–3 ideas y usa estilos genéricos.`;
+    showModal('modalResult', true);
+    if(win){ sfx('fanfarria'); speak('La fama rápida engaña; el respeto lo crea mi idea.'); }
+  }
+  // Derrota suave inmediata
+  if(estado.respeto===0){
+    document.getElementById('resultTitle').textContent = 'Necesitas reconstruir tu respeto';
+    document.getElementById('resultText').textContent = 'La Maestra sugiere: “Cambia estilo y mezcla 2–3 ideas”. Pulsa Reintentar.';
+    showModal('modalResult', true); setCaption('Reintenta con mezcla propia.');
+  }
+}
+
+// ------------------ Canvas (SVG) ------------------
+function drawComposition(fromGenerate=false){
+  const svg = document.getElementById('composition');
+  const W = 800, H = 480; svg.innerHTML='';
+  // Fondo suave al generar
+  if(fromGenerate){
+    svg.style.background = 'linear-gradient(135deg, #fff, #f1faff 40%, #fffadf)';
+  } else { svg.style.background = 'transparent'; }
+  // Posiciones aleatorias pero suaves
+  for(let i=0;i<currentWork.ideas.length;i++){
+    const id = currentWork.ideas[i]; const idea = ideas.find(x=>x.id===id);
+    const x = 80 + Math.random()*(W-160); const y = 80 + Math.random()*(H-160);
+    const r = (Math.random()*20-10);
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('transform',`translate(${x},${y}) rotate(${r})`);
+    const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','middle');
+    t.setAttribute('font-size','56'); t.textContent = idea.icon;
+    g.appendChild(t); svg.appendChild(g);
+  }
+  drawStyleLayer();
+}
+
+function drawStyleLayer(){
+  const lay = document.getElementById('styleLayer'); lay.innerHTML='';
+  const style = estilos.find(s=>s.id===currentWork.style);
+  if(!style) return;
+  // Capa visual según estilo
+  const el = document.createElement('div'); el.style.position='absolute'; el.style.inset='0'; el.style.opacity=.8;
+  if(style.id==='calidos'){
+    el.style.background = 'radial-gradient(circle at 30% 30%, #fff0 0, #ffd7a3 40%, #ffc7a1 70%, #ffb385 100%)';
+  } else if(style.id==='geometricos'){
+    el.innerHTML = `<svg viewBox="0 0 800 480" width="100%" height="100%">${Array.from({length:14}).map(()=>{
+      const x=Math.random()*760, y=Math.random()*440, w=20+Math.random()*100, h=20+Math.random()*100, r=Math.random()*30;
+      return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="none" stroke="#333" stroke-width="3" />`;
+    }).join('')}</svg>`;
+  } else if(style.id==='nocturno'){
+    el.style.background = 'linear-gradient(#00132a, #001b3b)';
+    el.innerHTML = `<svg viewBox="0 0 800 480" width="100%" height="100%">${Array.from({length:90}).map(()=>{
+      const x=Math.random()*800, y=Math.random()*480, s=Math.random()*2+0.5; return `<circle cx="${x}" cy="${y}" r="${s}" fill="#fff" />`;
+    }).join('')}</svg>`;
+  } else if(style.id==='collage'){
+    el.innerHTML = `<svg viewBox="0 0 800 480" width="100%" height="100%">${Array.from({length:10}).map(()=>{
+      const pts = Array.from({length:5}).map(()=>`${Math.random()*800},${Math.random()*480}`).join(' ');
+      const col = ['#ffd166','#06d6a0','#8ecae6','#ffadad','#caffbf'][Math.floor(Math.random()*5)];
+      return `<polygon points="${pts}" fill="${col}" opacity=".5" stroke="#222" stroke-width="3"/>`;
+    }).join('')}</svg>`;
+  } else if(style.peligro){
+    // Riesgo: apariencia sospechosa con patrón pesado
+    el.style.background = 'repeating-linear-gradient(45deg, #ffe3e3 0 12px, #ffd3d3 12px 24px)';
+    el.style.mixBlendMode = 'multiply';
+  }
+  lay.appendChild(el);
+}
+
+function addToGallery(){
+  const gal = document.getElementById('gallery');
+  const th = document.createElement('div'); th.className='thumb';
+  // Mini SVG snapshot
+  const mini = document.createElement('div'); mini.style.position='absolute'; mini.style.inset='0'; mini.style.overflow='hidden';
+  mini.innerHTML = document.getElementById('composition').outerHTML.replace('800 480','160 96').replace('800','160').replace('480','96');
+  th.appendChild(mini); gal.prepend(th);
+}
+
+function resetCanvas(clearStyleAlso){
+  currentWork.ideas = []; if(clearStyleAlso){ currentWork.style=null; }
+  currentWork.type=null; currentWork.svgMarkup='';
+  drawComposition(); renderUI();
+}
+
+// ------------------ Subtareas de UI ------------------
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function showModal(id, show){
+  const m = document.getElementById(id); if(!m) return;
+  if(show){ m.classList.add('show'); m.querySelector('.btn, [tabindex]')?.focus(); }
+  else { m.classList.remove('show'); }
+}
+
+// ------------------ Accesibilidad y toggles ------------------
+function toggleCaptions(){ estado.captionsOn = !estado.captionsOn; document.getElementById('tglCaptions').setAttribute('aria-pressed', estado.captionsOn); if(!estado.captionsOn) setCaption(''); }
+function setContrast(mode){ estado.highContrast = mode; document.getElementById('tglContrast').setAttribute('aria-pressed', mode); document.body.classList.toggle('high-contrast', mode); }
+
+// ------------------ Interacciones y eventos ------------------
+function setupInteractions(){
+  // Inicio
+  document.getElementById('btnPlay').addEventListener('click', ()=>{ sfx('click'); startBriefing(); });
+  document.getElementById('btnHow').addEventListener('click', ()=>{ sfx('click'); showModal('modalHow', true); });
+  document.getElementById('closeHow').addEventListener('click', ()=> showModal('modalHow', false));
+
+  // Briefing → Estudio
+  document.getElementById('btnUnderstood').addEventListener('click', ()=>{ sfx('click'); startStudio(); });
+
+  // Estudio
+  document.getElementById('btnGenerate').addEventListener('click', ()=>{ ensureAudio(); generateWork(); });
+  document.getElementById('btnPublish').addEventListener('click', ()=>{ ensureAudio(); publishWork(); });
+  document.getElementById('btnResetCanvas').addEventListener('click', ()=>{ resetCanvas(false); });
+
+  // Detective
+  document.getElementById('btnCloseDetective').addEventListener('click', ()=>{ showModal('modalDetective', false); });
+
+  // Resultado final
+  document.getElementById('btnRetry').addEventListener('click', ()=>{ sfx('click'); retryGame(); });
+  document.getElementById('btnCloseResult').addEventListener('click', ()=> showModal('modalResult', false));
+
+  // Drag & drop al lienzo
+  const canvas = document.getElementById('canvas');
+  canvas.addEventListener('dragover', ev=>{ ev.preventDefault(); canvas.style.outline='4px dashed #333'; });
+  canvas.addEventListener('dragleave', ()=>{ canvas.style.outline='none'; });
+  canvas.addEventListener('drop', ev=>{ ev.preventDefault(); canvas.style.outline='none'; const id = ev.dataTransfer.getData('text/plain'); if(id) addIdea(id); });
+  // Doble clic en composición para quitar última idea
+  document.getElementById('composition').addEventListener('dblclick', ()=>{ if(currentWork.ideas.length) removeIdeaAt(currentWork.ideas.length-1); });
+
+  // Teclado global
+  window.addEventListener('keydown', (e)=>{
+    if(e.key==='1'){ document.getElementById('palette').querySelector('.idea')?.focus(); }
+    if(e.key==='2'){ document.getElementById('styleMenu').querySelector('.style-btn')?.focus(); }
+    if(e.key==='3'){ ensureAudio(); publishWork(); }
+    if(e.key.toLowerCase()==='r'){ retryGame(); }
+    if(e.key===' ' || e.key==='Enter'){
+      // Acciona botón enfocado
+      const a = document.activeElement; if(a && a.click){ e.preventDefault(); a.click(); }
+    }
+  });
+
+  // Toggles
+  const tgl = (id, fn)=> document.getElementById(id).addEventListener('click', fn);
+  tgl('tglMusic', ()=>{ ensureAudio(); estado.musicOn = !estado.musicOn; document.getElementById('tglMusic').setAttribute('aria-pressed', estado.musicOn); updateMusicByRespect(); });
+  tgl('tglVoice', ()=>{ estado.voiceOn = !estado.voiceOn; document.getElementById('tglVoice').setAttribute('aria-pressed', estado.voiceOn); if(!estado.voiceOn) window.speechSynthesis.cancel(); });
+  tgl('tglCaptions', ()=> toggleCaptions());
+  tgl('tglContrast', ()=> setContrast(!estado.highContrast));
+  tgl('tglCB', ()=>{ estado.cbMode = !estado.cbMode; document.getElementById('tglCB').setAttribute('aria-pressed', estado.cbMode); document.body.classList.toggle('cb-mode', estado.cbMode); });
+}
+
+// ------------------ Flujo de pantallas ------------------
+function startBriefing(){
+  showScreen('screenBrief');
+  // Voz guiada + demo de contadores
+  const lines = [
+    'Inspiración no es igual a plagio.',
+    'Gato azul a Perro azul: ¡inspiración! Copiar exacto: plagio.',
+    'Tu idea primero; la IA te ayuda.'
+  ];
+  let i=0; function next(){ if(i<lines.length){ speak(lines[i]); i++; setTimeout(next, 2200); } }
+  next();
+  // Demo de contadores suben/bajan
+  let f=0, r=60; const fEl=document.getElementById('demoFans'), rEl=document.getElementById('demoResp');
+  const t = setInterval(()=>{ fEl.textContent = ++f; if(f<=30) rEl.textContent = ++r; if(f>=30){ clearInterval(t); setTimeout(()=>{ rEl.textContent = 40; }, 600); } }, 40);
+}
+
+function startStudio(){
+  showScreen('screenStudio'); renderUI(); setCaption('Mezcla 2+ ideas, elige estilo y genera.');
+}
+
+function retryGame(){
+  showModal('modalResult', false);
+  // Redención: Respeto 20 si hubo plagio (respeto 0), si no reinicio normal
+  const redencion = (estado.respeto===0);
+  estado.fans=0; estado.respeto = redencion? 20:60; estado.riesgo=10; estado.obrasPublicadas=0;
+  resetCanvas(true); renderUI(); showScreen('screenStudio');
+  if(redencion){ speak('El respeto vuelve con tu creatividad. Mezcla ideas y usa estilo propio.'); sfx('fanfarria'); }
+}
+
+// ------------------ Inicialización ------------------
+setupInteractions(); renderUI();
+setCaption('Bienvenida. Activa o desactiva Música, Voz y Subtítulos.');
+
+</script>
+</body>
+</html>
